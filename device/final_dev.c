@@ -5,15 +5,23 @@
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
 
+#include <net/dst.h>
+
 
 static int final_init(struct net_device *dev) {
 	return 0;
 }
 
 static netdev_tx_t final_xmit(struct sk_buff *skb, struct net_device *dev) {
-	kfree_skb(skb);
+	skb_tx_timestamp(skb);
+	skb_clear_tstamp(skb);
+	skb_orphan(skb);
 
-	printk("Dropped frame");
+	skb_dst_force(skb);
+	skb->protocol = eth_type_trans(skb, dev);
+	//kfree_skb(skb);
+	__netif_rx(skb);
+	printk("Delivered frame");
 	
 	return NETDEV_TX_OK;
 }
